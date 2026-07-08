@@ -1,9 +1,9 @@
 const Event = require('../models/Event');
 
-// GET /api/events?search=&category=&page=1&limit=6
+// GET /api/events?search=&category=&page=1&limit=6&sortBy=upcoming
 const getEvents = async (req, res) => {
   try {
-    const { search, category, page = 1, limit = 6 } = req.query;
+    const { search, category, page = 1, limit = 6, sortBy = 'upcoming' } = req.query;
 
     const query = {};
     if (search) {
@@ -13,11 +13,18 @@ const getEvents = async (req, res) => {
       query.category = category;
     }
 
+    const sortMap = {
+      upcoming: { date: 1 },
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+    };
+    const sortOrder = sortMap[sortBy] || { date: 1 };
+
     const skip = (Number(page) - 1) * Number(limit);
 
     const events = await Event.find(query)
       .populate('createdBy', 'name email')
-      .sort({ date: 1 })
+      .sort(sortOrder)
       .skip(skip)
       .limit(Number(limit));
 
@@ -29,6 +36,16 @@ const getEvents = async (req, res) => {
       totalPages: Math.ceil(total / Number(limit)),
       currentPage: Number(page),
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET /api/events/my-events
+const getMyEvents = async (req, res) => {
+  try {
+    const events = await Event.find({ createdBy: req.user.id }).sort({ date: 1 });
+    res.status(200).json(events);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -47,24 +64,9 @@ const getEventById = async (req, res) => {
   }
 };
 
-// GET /api/events/my-events
-const getMyEvents = async (req, res) => {
-  try {
-    const events = await Event.find({ createdBy: req.user.id }).sort({ date: 1 });
-    res.status(200).json(events);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 // POST /api/events
 const createEvent = async (req, res) => {
   try {
-
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-    console.log("USER:", req.user);
-
     const { title, description, date, location, category } = req.body;
 
     const event = await Event.create({
@@ -79,7 +81,6 @@ const createEvent = async (req, res) => {
 
     res.status(201).json(event);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -103,7 +104,6 @@ const updateEvent = async (req, res) => {
     event.date = date || event.date;
     event.location = location || event.location;
     event.category = category || event.category;
-
     if (req.file) {
       event.image = `/uploads/${req.file.filename}`;
     }
@@ -123,7 +123,6 @@ const deleteEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
-
     if (event.createdBy.toString() !== req.user.id) {
       return res.status(401).json({ message: 'Not authorized' });
     }
@@ -139,13 +138,11 @@ const deleteEvent = async (req, res) => {
 const toggleInterest = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
 
     const userId = req.user.id;
-
     const alreadyInterested = event.interestedUsers.some(
       (id) => id.toString() === userId
     );
@@ -159,12 +156,10 @@ const toggleInterest = async (req, res) => {
     }
 
     await event.save();
-
     res.status(200).json({
       interestedCount: event.interestedUsers.length,
       isInterested: !alreadyInterested,
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
