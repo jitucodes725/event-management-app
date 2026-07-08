@@ -1,33 +1,57 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import API from '../api/axios';
 import EventCard from '../components/EventCard';
+import Spinner from '../components/Spinner';
 
 function MyEvents() {
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMyEvents = async () => {
-      try {
-        const res = await API.get('/events/my-events');
-        setEvents(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchMyEvents();
+    API.get('/events/my-events')
+      .then((res) => setEvents(res.data))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">My Events</h1>
-      {events.length === 0 ? (
-        <p className="text-gray-500">You haven't created any events yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {events.map((event) => (
-            <EventCard key={event._id} event={event} />
-          ))}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors px-4 md:px-8 py-8 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">My Events</h1>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Events you've created</p>
         </div>
+        <Link
+          to="/create-event"
+          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition"
+        >
+          + Create New
+        </Link>
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : events.length === 0 ? (
+        <div className="text-center py-24">
+          <p className="text-5xl mb-4">🗂️</p>
+          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No events yet</p>
+          <Link to="/create-event" className="inline-block mt-4 text-purple-600 dark:text-purple-400 font-semibold hover:underline">
+            Create your first event →
+          </Link>
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {events.map((event, i) => (
+            <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+              <EventCard event={event} />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
     </div>
   );
