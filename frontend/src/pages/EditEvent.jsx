@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import API from '../api/axios';
 import useToast from '../hooks/useToast';
 import Spinner from '../components/Spinner';
+import MapPicker from '../components/MapPicker';
 
 function EditEvent() {
   const { id } = useParams();
@@ -36,6 +37,10 @@ function EditEvent() {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' });
+  };
+
+  const handleMapSelect = ({ lat, lng }) => {
+    setFormData((prev) => ({ ...prev, location: `${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
   };
 
   const handleSubmit = async (e) => {
@@ -85,9 +90,10 @@ function EditEvent() {
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
           </div>
           <div>
-            <input name="location" value={formData.location} placeholder="Location" onChange={handleChange} className={inputClass('location')} />
+            <input name="location" value={formData.location} placeholder="Location (or click map)" onChange={handleChange} className={inputClass('location')} />
             {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
           </div>
+          <MapPicker onLocationSelect={handleMapSelect} />
           <select name="category" value={formData.category} onChange={handleChange} className={inputClass('category')}>
             {['Music','Tech','Sports','Business','Art','Other'].map(c => <option key={c}>{c}</option>)}
           </select>

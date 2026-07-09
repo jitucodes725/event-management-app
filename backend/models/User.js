@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   profilePic: { type: String, default: '' },
   bio: { type: String, default: '' },
+  isAdmin: { type: Boolean, default: false },
+  pushSubscription: { type: Object, default: null }, // for browser notifications
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
