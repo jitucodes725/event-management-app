@@ -1,13 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getEvents, getEventById, getMyEvents, createEvent,
-  updateEvent, deleteEvent, toggleInterest,
+  getEvents,
+  getAllApprovedEvents,
+  getEventById,
+  getMyEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  toggleInterest,
 } = require('../controllers/eventController');
 const protect = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 router.get('/my-events', protect, getMyEvents);
+router.get('/all', getAllApprovedEvents);
 router.get('/', getEvents);
 router.get('/:id', getEventById);
 router.post('/', protect, upload.single('image'), createEvent);

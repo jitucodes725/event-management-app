@@ -5,7 +5,7 @@ const { sendInterestEmail } = require('../utils/emailService');
 const getEvents = async (req, res) => {
   try {
     const { search, category, page = 1, limit = 6, sortBy = 'upcoming' } = req.query;
-    const query = { status: 'approved' }; // only show approved events publicly
+    const query = { status: 'approved' };
     if (search) query.title = { $regex: search, $options: 'i' };
     if (category && category !== 'All') query.category = category;
 
@@ -34,6 +34,18 @@ const getEvents = async (req, res) => {
   }
 };
 
+// GET all approved events without pagination (for calendar)
+const getAllApprovedEvents = async (req, res) => {
+  try {
+    const events = await Event.find({ status: 'approved' })
+      .populate('createdBy', 'name')
+      .sort({ date: 1 });
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('createdBy', 'name email');
@@ -46,7 +58,6 @@ const getEventById = async (req, res) => {
 
 const getMyEvents = async (req, res) => {
   try {
-    // Creator sees all their events regardless of status
     const events = await Event.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
     res.status(200).json(events);
   } catch (error) {
@@ -56,12 +67,18 @@ const getMyEvents = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, description, date, location, category } = req.body;
+    const { title, description, date, location, category, capacity } = req.body;
+
+    if (!capacity || Number(capacity) < 1) {
+      return res.status(400).json({ message: 'Capacity must be at least 1' });
+    }
+
     const event = await Event.create({
       title, description, date, location, category,
+      capacity: Number(capacity),
       image: req.file ? `/uploads/${req.file.filename}` : '',
       createdBy: req.user.id,
-      status: 'pending', // always starts as pending
+      status: 'pending',
     });
     res.status(201).json(event);
   } catch (error) {
@@ -76,14 +93,22 @@ const updateEvent = async (req, res) => {
     if (event.createdBy.toString() !== req.user.id)
       return res.status(401).json({ message: 'Not authorized' });
 
-    const { title, description, date, location, category } = req.body;
+    const { title, description, date, location, category, capacity } = req.body;
+
+    if (capacity && Number(capacity) < 1) {
+      return res.status(400).json({ message: 'Capacity must be at least 1' });
+    }
+    if (capacity && Number(capacity) < event.interestedUsers.length) {
+      return res.status(400).json({ message: `Capacity cannot be less than current interested users (${event.interestedUsers.length})` });
+    }
+
     event.title = title || event.title;
     event.description = description || event.description;
     event.date = date || event.date;
     event.location = location || event.location;
     event.category = category || event.category;
+    if (capacity) event.capacity = Number(capacity);
     if (req.file) event.image = `/uploads/${req.file.filename}`;
-    // editing resets to pending for re-approval
     event.status = 'pending';
 
     const updatedEvent = await event.save();
@@ -114,11 +139,14 @@ const toggleInterest = async (req, res) => {
     const userId = req.user.id;
     const alreadyInterested = event.interestedUsers.some(id => id.toString() === userId);
 
+    if (!alreadyInterested && event.interestedUsers.length >= event.capacity) {
+      return res.status(400).json({ message: 'Event is full' });
+    }
+
     if (alreadyInterested) {
       event.interestedUsers = event.interestedUsers.filter(id => id.toString() !== userId);
     } else {
       event.interestedUsers.push(userId);
-      // Send email to event creator (non-blocking)
       const interestedUser = await User.findById(userId);
       if (interestedUser && event.createdBy._id.toString() !== userId) {
         sendInterestEmail(event.createdBy, event, interestedUser);
@@ -129,6 +157,7 @@ const toggleInterest = async (req, res) => {
     res.status(200).json({
       interestedCount: event.interestedUsers.length,
       isInterested: !alreadyInterested,
+      isFull: event.interestedUsers.length >= event.capacity,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -136,6 +165,12 @@ const toggleInterest = async (req, res) => {
 };
 
 module.exports = {
-  getEvents, getEventById, getMyEvents, createEvent,
-  updateEvent, deleteEvent, toggleInterest,
+  getEvents,
+  getAllApprovedEvents,
+  getEventById,
+  getMyEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  toggleInterest,
 };

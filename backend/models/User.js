@@ -7,7 +7,9 @@ const userSchema = new mongoose.Schema({
   profilePic: { type: String, default: '' },
   bio: { type: String, default: '' },
   isAdmin: { type: Boolean, default: false },
-  pushSubscription: { type: Object, default: null }, // for browser notifications
+  pushSubscription: { type: Object, default: null },
+  resetPasswordToken: { type: String },
+  resetPasswordExpire: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

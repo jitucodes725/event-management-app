@@ -10,12 +10,10 @@ const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 const startScheduler = require('./utils/scheduler');
-console.log("SERVER EMAIL_USER:", process.env.EMAIL_USER);
-console.log("SERVER EMAIL_PASS:", process.env.EMAIL_PASS ? "Loaded" : "Missing");
 connectDB();
 
-// Setup web push
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL,
   process.env.VAPID_PUBLIC_KEY,
@@ -31,10 +29,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/comments', commentRoutes);
 
 app.get('/', (req, res) => res.send('API is running...'));
 
-// Start cron job scheduler
 startScheduler();
 
 const PORT = process.env.PORT || 5000;
