@@ -22,6 +22,11 @@ const eventSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  capacity: {
+    type: Number,
+    required: true,
+    min: [1, 'Capacity must be at least 1'],
+  },
   reminderSent: { type: Boolean, default: false },
 }, { timestamps: true });
 
