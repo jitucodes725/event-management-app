@@ -8,7 +8,7 @@ import MapPicker from '../components/MapPicker';
 
 function CreateEvent() {
   const [formData, setFormData] = useState({
-    title: '', description: '', date: '', location: '', category: 'Other',
+    title: '', description: '', date: '', location: '', category: 'Other', capacity: '',
   });
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -23,6 +23,8 @@ function CreateEvent() {
     if (!formData.description.trim()) e.description = 'Description is required';
     if (!formData.date) e.date = 'Date is required';
     if (!formData.location.trim()) e.location = 'Location is required';
+    if (!formData.capacity) e.capacity = 'Capacity is required';
+    else if (Number(formData.capacity) < 1) e.capacity = 'Capacity must be at least 1';
     return e;
   };
 
@@ -33,10 +35,7 @@ function CreateEvent() {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setPreview(URL.createObjectURL(file));
-    }
+    if (file) { setImage(file); setPreview(URL.createObjectURL(file)); }
   };
 
   const handleMapSelect = ({ lat, lng }) => {
@@ -50,11 +49,11 @@ function CreateEvent() {
     setLoading(true);
     try {
       const data = new FormData();
-      Object.entries(formData).forEach(([k, v]) => data.append(k, v));
+      Object.entries(formData).forEach(([k, val]) => data.append(k, val));
       if (image) data.append('image', image);
       await API.post('/events', data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Event created successfully!');
-      navigate('/dashboard');
+      toast.success('Event submitted for approval!');
+      navigate('/my-events');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create event');
     } finally {
@@ -63,9 +62,7 @@ function CreateEvent() {
   };
 
   const inputClass = (field) =>
-    `w-full px-4 py-3 rounded-xl border ${
-      errors[field] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
-    } bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 transition`;
+    `w-full px-4 py-3 rounded-xl border ${errors[field] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 transition`;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 px-4 py-10 transition-colors">
@@ -96,17 +93,26 @@ function CreateEvent() {
 
           <MapPicker onLocationSelect={handleMapSelect} />
 
+          <div>
+            <input
+              type="number"
+              name="capacity"
+              placeholder="Max Capacity (e.g. 100)"
+              min="1"
+              onChange={handleChange}
+              className={inputClass('capacity')}
+            />
+            {errors.capacity && <p className="text-red-500 text-xs mt-1">{errors.capacity}</p>}
+          </div>
+
           <select name="category" onChange={handleChange} className={inputClass('category')}>
-            {['Music','Tech','Sports','Business','Art','Other'].map(c => <option key={c}>{c}</option>)}
+            {['Music', 'Tech', 'Sports', 'Business', 'Art', 'Other'].map(c => <option key={c}>{c}</option>)}
           </select>
 
-          {/* Image upload with preview */}
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Event Image (optional)</label>
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-purple-50 dark:file:bg-purple-900/30 file:text-purple-700 dark:file:text-purple-300 file:font-medium hover:file:bg-purple-100 transition" />
-            {preview && (
-              <img src={preview} alt="preview" className="mt-3 w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
-            )}
+            {preview && <img src={preview} alt="preview" className="mt-3 w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />}
           </div>
 
           <button
@@ -114,7 +120,7 @@ function CreateEvent() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-3 rounded-xl font-semibold hover:opacity-90 transition disabled:opacity-60"
           >
-            {loading ? <Spinner size="sm" /> : 'Create Event'}
+            {loading ? <Spinner size="sm" /> : 'Submit for Approval'}
           </button>
         </form>
       </motion.div>

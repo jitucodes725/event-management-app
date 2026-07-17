@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import API from '../api/axios';
 import useToast from '../hooks/useToast';
 import Spinner from '../components/Spinner';
-import MapPicker from '../components/MapPicker';
 
 function EditEvent() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const [formData, setFormData] = useState({ title: '', description: '', date: '', location: '', category: 'Other' });
+  const [formData, setFormData] = useState({
+    title: '', description: '', date: '', location: '', category: 'Other', capacity: '',
+  });
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [errors, setErrors] = useState({});
@@ -20,7 +21,14 @@ function EditEvent() {
   useEffect(() => {
     API.get(`/events/${id}`).then((res) => {
       const ev = res.data;
-      setFormData({ title: ev.title, description: ev.description, date: ev.date.split('T')[0], location: ev.location, category: ev.category });
+      setFormData({
+        title: ev.title,
+        description: ev.description,
+        date: ev.date.split('T')[0],
+        location: ev.location,
+        category: ev.category,
+        capacity: ev.capacity?.toString() || '',
+      });
       if (ev.image) setPreview(`http://localhost:5000${ev.image}`);
     }).finally(() => setFetching(false));
   }, [id]);
@@ -31,16 +39,14 @@ function EditEvent() {
     if (!formData.description.trim()) e.description = 'Description is required';
     if (!formData.date) e.date = 'Date is required';
     if (!formData.location.trim()) e.location = 'Location is required';
+    if (!formData.capacity) e.capacity = 'Capacity is required';
+    else if (Number(formData.capacity) < 1) e.capacity = 'Capacity must be at least 1';
     return e;
   };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' });
-  };
-
-  const handleMapSelect = ({ lat, lng }) => {
-    setFormData((prev) => ({ ...prev, location: `${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
   };
 
   const handleSubmit = async (e) => {
@@ -53,7 +59,7 @@ function EditEvent() {
       Object.entries(formData).forEach(([k, val]) => data.append(k, val));
       if (image) data.append('image', image);
       await API.put(`/events/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Event updated!');
+      toast.success('Event updated — pending re-approval');
       navigate(`/events/${id}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update event');
@@ -90,16 +96,27 @@ function EditEvent() {
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
           </div>
           <div>
-            <input name="location" value={formData.location} placeholder="Location (or click map)" onChange={handleChange} className={inputClass('location')} />
+            <input name="location" value={formData.location} placeholder="Location" onChange={handleChange} className={inputClass('location')} />
             {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
           </div>
-          <MapPicker onLocationSelect={handleMapSelect} />
+          <div>
+            <input
+              type="number"
+              name="capacity"
+              value={formData.capacity}
+              placeholder="Max Capacity"
+              min="1"
+              onChange={handleChange}
+              className={inputClass('capacity')}
+            />
+            {errors.capacity && <p className="text-red-500 text-xs mt-1">{errors.capacity}</p>}
+          </div>
           <select name="category" value={formData.category} onChange={handleChange} className={inputClass('category')}>
-            {['Music','Tech','Sports','Business','Art','Other'].map(c => <option key={c}>{c}</option>)}
+            {['Music', 'Tech', 'Sports', 'Business', 'Art', 'Other'].map(c => <option key={c}>{c}</option>)}
           </select>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Change Image (optional)</label>
-            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f){setImage(f);setPreview(URL.createObjectURL(f));} }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-purple-50 dark:file:bg-purple-900/30 file:text-purple-700 dark:file:text-purple-300 file:font-medium" />
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if (f) { setImage(f); setPreview(URL.createObjectURL(f)); } }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-purple-50 dark:file:bg-purple-900/30 file:text-purple-700 dark:file:text-purple-300 file:font-medium" />
             {preview && <img src={preview} alt="preview" className="mt-3 w-full h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />}
           </div>
           <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-3 rounded-xl font-semibold hover:opacity-90 transition disabled:opacity-60">

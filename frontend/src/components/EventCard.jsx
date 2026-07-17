@@ -72,10 +72,10 @@ function EventCard({ event }) {
           </div>
 
           {/* Interested count */}
-          {event.interestedUsers?.length > 0 && (
+          {event.bookedCount > 0 && (
             <div className="flex items-center gap-1 mt-2 text-xs text-purple-500 dark:text-purple-400 font-medium">
               <FiHeart size={12} />
-              {event.interestedUsers.length} interested
+              {event.bookedCount} reserved
             </div>
           )}
         </div>

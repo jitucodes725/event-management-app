@@ -7,7 +7,12 @@ import useToast from '../hooks/useToast';
 import Spinner from '../components/Spinner';
 
 function Register() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phoneNumber: '',
+  });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,12 +26,19 @@ function Register() {
     else if (!/\S+@\S+\.\S+/.test(formData.email)) e.email = 'Enter a valid email';
     if (!formData.password) e.password = 'Password is required';
     else if (formData.password.length < 6) e.password = 'Password must be at least 6 characters';
+    if (!formData.phoneNumber) e.phoneNumber = 'Phone number is required';
+    else if (!/^\d{10}$/.test(formData.phoneNumber)) e.phoneNumber = 'Enter a valid 10-digit phone number';
     return e;
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    if (name === 'phoneNumber') {
+      if (!/^\d*$/.test(value)) return;
+      if (value.length > 10) return;
+    }
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) setErrors({ ...errors, [name]: '' });
   };
 
   const handleSubmit = async (e) => {
@@ -54,25 +66,64 @@ function Register() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 transition-colors">
       <motion.div
-        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 w-full max-w-md border border-gray-100 dark:border-gray-800"
       >
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-1">Create account</h2>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-8">Join EventHub today — it's free</p>
+        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-1">
+          Create account
+        </h2>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mb-8">
+          Join EventHub today — it's free
+        </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <input type="text" name="name" placeholder="Full Name" onChange={handleChange} className={inputClass('name')} />
+            <input
+              type="text"
+              name="name"
+              placeholder="Full Name"
+              onChange={handleChange}
+              className={inputClass('name')}
+            />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
           <div>
-            <input type="email" name="email" placeholder="Email" onChange={handleChange} className={inputClass('email')} />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              onChange={handleChange}
+              className={inputClass('email')}
+            />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
           <div>
-            <input type="password" name="password" placeholder="Password (min 6 characters)" onChange={handleChange} className={inputClass('password')} />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password (min 6 characters)"
+              onChange={handleChange}
+              className={inputClass('password')}
+            />
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
+          <div>
+            <input
+              type="text"
+              name="phoneNumber"
+              placeholder="Phone Number (10 digits)"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              maxLength={10}
+              inputMode="numeric"
+              className={inputClass('phoneNumber')}
+            />
+            {errors.phoneNumber && (
+              <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -84,7 +135,12 @@ function Register() {
 
         <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">Sign in</Link>
+          <Link
+            to="/login"
+            className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
+          >
+            Sign in
+          </Link>
         </p>
       </motion.div>
     </div>

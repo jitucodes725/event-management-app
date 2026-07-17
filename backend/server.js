@@ -1,8 +1,6 @@
-const dotenv = require('dotenv');
-dotenv.config();
-
 const express = require('express');
 const path = require('path');
+const dotenv = require('dotenv');
 const cors = require('cors');
 const webpush = require('web-push');
 const connectDB = require('./config/db');
@@ -11,7 +9,10 @@ const eventRoutes = require('./routes/eventRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const ticketRoutes = require('./routes/ticketRoutes');
 const startScheduler = require('./utils/scheduler');
+
+dotenv.config();
 connectDB();
 
 webpush.setVapidDetails(
@@ -30,6 +31,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 app.get('/', (req, res) => res.send('API is running...'));
 
